@@ -1,0 +1,186 @@
+CREATE SCHEMA "ex4";
+
+CREATE TABLE "ex4".products(
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    price DECIMAL(10, 2) NOT NULL
+);
+
+CREATE TABLE "ex4".customers(
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE "ex4".orders(
+    id SERIAL PRIMARY KEY,
+    customer_id INT NOT NULL,
+    order_date DATE NOT NULL,
+    total_price DECIMAL(10, 2) NOT NULL,
+    FOREIGN KEY (customer_id) REFERENCES "ex4".customers(id)
+);
+
+CREATE TABLE "ex4".order_items(
+    order_id INT NOT NULL,
+    product_id INT NOT NULL,
+    quantity INT NOT NULL,
+    price DECIMAL(10, 2) NOT NULL,
+    FOREIGN KEY (order_id) REFERENCES "ex4".orders(id),
+    FOREIGN KEY (product_id) REFERENCES "ex4".products(id),
+    PRIMARY KEY (order_id, product_id)
+);
+
+CREATE OR REPLACE FUNCTION "ex4".list_products()
+RETURNS TABLE(id INT, name VARCHAR, price DECIMAL) AS $$
+BEGIN
+    RETURN QUERY SELECT p.id, p.name, p.price FROM "ex4".products p;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "ex4".list_customers()
+RETURNS TABLE(id INT, name VARCHAR, email VARCHAR) AS $$
+BEGIN
+    RETURN QUERY SELECT c.id, c.name, c.email FROM "ex4".customers c;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "ex4".get_customer_by_id(c_id INT)
+RETURNS TABLE(id INT, name VARCHAR, email VARCHAR) AS $$
+BEGIN
+    RETURN QUERY SELECT c.id, c.name, c.email FROM "ex4".customers c WHERE c.id = c_id;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "ex4".add_product(name VARCHAR, price DECIMAL)
+RETURNS VOID AS $$
+BEGIN
+    INSERT INTO "ex4".products (name, price) VALUES (name, price);
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "ex4".update_customer(id INT, name VARCHAR, email VARCHAR)
+RETURNS VOID AS $$
+BEGIN
+    UPDATE "ex4".customers SET name = name, email = email WHERE id = id;
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION "ex4".create_order(customer_id INT, order_date DATE, total_price DECIMAL)
+RETURNS VOID AS $$
+BEGIN
+    INSERT INTO "ex4".orders (customer_id, quantity, order_date, total_price) VALUES (customer_id, order_date, total_price);
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "ex4".add_order_item(order_id INT, product_id INT, quantity INT, price DECIMAL)
+RETURNS VOID AS $$
+BEGIN
+    INSERT INTO "ex4".order_items (order_id, product_id, quantity, price) VALUES (order_id, product_id, quantity, price);
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "ex4".get_orders_by_customer(p_customer_id INT)
+RETURNS TABLE(order_id INT, order_date DATE, total_price DECIMAL) AS $$
+BEGIN
+    RETURN QUERY SELECT o.id, o.order_date, o.total_price FROM "ex4".orders o WHERE o.customer_id = p_customer_id;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "ex4".list_all_orders()
+RETURNS TABLE(order_id INT, customer_name VARCHAR, order_date DATE, total_price DECIMAL) AS $$
+BEGIN
+    RETURN QUERY SELECT o.id, c.name, o.order_date, o.total_price FROM "ex4".orders o JOIN "ex4".customers c ON o.customer_id = c.id;
+END;
+$$ LANGUAGE plpgsql;
+
+/* 10 Sample Products */
+INSERT INTO "ex4".products (name, price) VALUES
+  ('Laptop', 999.99),
+  ('Smartphone', 499.99),
+  ('Headphones', 199.99),
+  ('Monitor', 299.99),
+  ('Keyboard', 49.99),
+  ('Mouse', 29.99),
+  ('USB Cable', 9.99),
+  ('Webcam', 79.99),
+  ('External Hard Drive', 89.99),
+  ('Laptop Stand', 39.99);
+
+/* 10 Sample Customers */
+INSERT INTO "ex4".customers (name, email) VALUES
+  ('Nguyen Van A', 'nguyenvana@email.com'),
+  ('Tran Thi B', 'tranthib@email.com'),
+  ('Hoang Van C', 'hoangvanc@email.com'),
+  ('Pham Thi D', 'phamthid@email.com'),
+  ('Le Van E', 'levane@email.com'),
+  ('Vu Thi F', 'vuthif@email.com'),
+  ('Do Van G', 'dovang@email.com'),
+  ('Ngo Thi H', 'ngothih@email.com'),
+  ('Ly Van I', 'vani@email.com'),
+  ('Dang Thi J', 'dangthij@email.com');
+
+/* 10 Sample Orders with 3 items each */
+INSERT INTO "ex4".orders (customer_id, order_date, total_price) VALUES
+  (1, '2026-01-05', 1289.97),
+  (2, '2026-01-10', 789.97),
+  (3, '2026-01-15', 1299.98),
+  (4, '2026-01-20', 579.97),
+  (5, '2026-01-25', 1109.97),
+  (6, '2026-02-01', 689.97),
+  (7, '2026-02-05', 859.97),
+  (8, '2026-02-10', 969.98),
+  (9, '2026-02-15', 739.97),
+  (10, '2026-02-20', 1199.97);
+
+/* Order Items - 3 items per order */
+INSERT INTO "ex4".order_items (order_id, product_id, quantity, price) VALUES
+  /* Order 1 */
+  (1, 1, 1, 999.99),
+  (1, 5, 2, 49.99),
+  (1, 10, 1, 39.99),
+
+  /* Order 2 */
+  (2, 2, 1, 499.99),
+  (2, 7, 3, 9.99),
+  (2, 9, 1, 89.99),
+
+  /* Order 3 */
+  (3, 1, 1, 999.99),
+  (3, 3, 2, 199.99),
+  (3, 6, 1, 29.99),
+
+  /* Order 4 */
+  (4, 4, 1, 299.99),
+  (4, 8, 1, 79.99),
+  (4, 7, 2, 9.99),
+
+  /* Order 5 */
+  (5, 2, 1, 499.99),
+  (5, 5, 1, 49.99),
+  (5, 9, 2, 89.99),
+
+  /* Order 6 */
+  (6, 3, 1, 199.99),
+  (6, 6, 2, 29.99),
+  (6, 10, 1, 39.99),
+
+  /* Order 7 */
+  (7, 1, 1, 999.99),
+  (7, 4, 1, 299.99),
+  (7, 8, 1, 79.99),
+
+  /* Order 8 */
+  (8, 2, 2, 499.99),
+  (8, 3, 1, 199.99),
+  (8, 7, 1, 9.99),
+
+  /* Order 9 */
+  (9, 5, 1, 49.99),
+  (9, 9, 1, 89.99),
+  (9, 6, 3, 29.99),
+
+  /* Order 10 */
+  (10, 1, 1, 999.99),
+  (10, 2, 1, 499.99),
+  (10, 10, 1, 39.99);

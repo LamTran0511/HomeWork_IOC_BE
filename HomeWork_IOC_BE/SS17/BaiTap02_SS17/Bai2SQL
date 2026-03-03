@@ -1,0 +1,62 @@
+CREATE TABLE "ex2".tasks(
+    id SERIAL PRIMARY KEY,
+    task_name VARCHAR(255) NOT NULL,
+    status VARCHAR(50) NOT NULL
+);
+
+CREATE OR REPLACE FUNCTION "ex2".add_task(task_name VARCHAR, status VARCHAR)
+RETURNS VOID AS $$
+BEGIN
+    INSERT INTO "ex2".tasks (task_name, status) VALUES (task_name, status);
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "ex2".list_tasks()
+RETURNS TABLE(id INT, task_name VARCHAR, status VARCHAR) AS $$
+BEGIN
+    RETURN QUERY SELECT t.id, t.task_name, t.status FROM "ex2".tasks t;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "ex2".update_task_status(task_id INT, new_status VARCHAR)
+RETURNS VOID AS $$
+BEGIN
+    UPDATE "ex2".tasks SET status = new_status WHERE id = task_id;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "ex2".delete_task(task_id INT)
+RETURNS VOID AS $$
+BEGIN
+    DELETE FROM "ex2".tasks WHERE id = task_id;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "ex2".get_task_by_name(p_task_name VARCHAR)
+RETURNS TABLE(id INT, task_name VARCHAR, status VARCHAR) AS $$
+BEGIN
+    RETURN QUERY SELECT t.id, t.task_name, t.status FROM "ex2".tasks t WHERE t.task_name = p_task_name;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION "ex2".task_statistics()
+RETURNS TABLE(status VARCHAR, count INT) AS $$
+BEGIN
+    RETURN QUERY
+        SELECT t.status, COUNT(*)::INT AS count
+        FROM "ex2".tasks AS t
+        GROUP BY t.status;
+END;
+$$ LANGUAGE plpgsql;
+
+INSERT INTO "ex2".tasks (task_name,status) VALUES
+  ('Write report','pending'),
+  ('Review PR #42','in progress'),
+  ('Team meeting','completed'),
+  ('Update documentation','pending'),
+  ('Fix bug #128','in progress'),
+  ('Deploy to staging','pending'),
+  ('Code refactor','completed'),
+  ('Design mockups','pending'),
+  ('Customer call','completed'),
+  ('Database backup','pending');
